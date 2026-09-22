@@ -21,8 +21,6 @@
 #ifndef DIALOGDATAINSPECTOR_H
 #define DIALOGDATAINSPECTOR_H
 
-#include <QPointer>
-
 #include "xformats.h"
 #include "xlineedithex.h"
 #include "xshortcutsdialog.h"
@@ -90,7 +88,7 @@ protected:
 private:
     Ui::DialogDataInspector *ui;
     XLineEditHEX *m_lineEdit[__DATAINS_SIZE];
-    QPointer<QIODevice> m_pDevice;
+    QIODevice *m_pDevice;
     qint64 m_nOffset;
     qint64 m_nSize;
     bool m_bSync;

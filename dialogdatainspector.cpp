@@ -87,7 +87,7 @@ QString readUnicodeString(const QByteArray &baData, bool bIsBigEndian)
     return sResult;
 }
 
-qint64 readExactAt(const QPointer<QIODevice> &pDevice, qint64 nOffset, char *pData, qint64 nSize)
+qint64 readExactAt(QIODevice *pDevice, qint64 nOffset, char *pData, qint64 nSize)
 {
     if (!pDevice || !pData || (nOffset < 0) || (nSize < 0) || (nSize > (std::numeric_limits<qint64>::max)() - nOffset)) {
         return 0;
@@ -114,7 +114,7 @@ qint64 readExactAt(const QPointer<QIODevice> &pDevice, qint64 nOffset, char *pDa
     return nRead;
 }
 
-qint64 writeExactAt(const QPointer<QIODevice> &pDevice, qint64 nOffset, const char *pData, qint64 nSize)
+qint64 writeExactAt(QIODevice *pDevice, qint64 nOffset, const char *pData, qint64 nSize)
 {
     if (!pDevice || !pData || (nOffset < 0) || (nSize < 0) || (nSize > (std::numeric_limits<qint64>::max)() - nOffset)) {
         return 0;
@@ -143,16 +143,16 @@ qint64 writeExactAt(const QPointer<QIODevice> &pDevice, qint64 nOffset, const ch
 
 class ClearDeviceAndInvoke {
 public:
-    ClearDeviceAndInvoke(QPointer<QIODevice> *pDevice, const std::function<void()> &function) : m_pDevice(pDevice), m_function(function) {}
+    ClearDeviceAndInvoke(QIODevice **pDevice, const std::function<void()> &function) : m_pDevice(pDevice), m_function(function) {}
 
     void operator()() const
     {
-        m_pDevice->clear();
+        *m_pDevice = nullptr;
         m_function();
     }
 
 private:
-    QPointer<QIODevice> *m_pDevice;
+    QIODevice **m_pDevice;
     std::function<void()> m_function;
 };
 
@@ -162,14 +162,14 @@ public:
 
     void operator()() const
     {
-        QObject *pContext = m_pContext.data();
+        QObject *pContext = m_pContext;
         if (pContext) {
             QTimer::singleShot(0, pContext, m_function);
         }
     }
 
 private:
-    QPointer<QObject> m_pContext;
+    QObject *m_pContext;
     std::function<void()> m_function;
 };
 
@@ -333,7 +333,7 @@ void DialogDataInspector::clearValues()
 
 bool DialogDataInspector::isDeviceReady(bool bRequireWritable) const
 {
-    QIODevice *pDevice = m_pDevice.data();
+    QIODevice *pDevice = m_pDevice;
     if (!pDevice || (pDevice->thread() != thread())) {
         return false;
     }
@@ -365,7 +365,7 @@ void DialogDataInspector::showData(qint64 nOffset, qint64 nSize)
         clearValues();
         ui->comboBoxEndianness->setEnabled(false);
         setReadonly(true);
-        QIODevice *pUnavailableDevice = m_pDevice.data();
+        QIODevice *pUnavailableDevice = m_pDevice;
         QString sStatus;
 
         if (!pUnavailableDevice) {
@@ -386,7 +386,7 @@ void DialogDataInspector::showData(qint64 nOffset, qint64 nSize)
         return;
     }
 
-    QPointer<QIODevice> pDevice = m_pDevice;
+    QIODevice *pDevice = m_pDevice;
     const qint64 nDeviceSize = pDevice->size();
 
     if ((nOffset < 0) || (nOffset >= nDeviceSize) || (nSize <= 0)) {
@@ -626,7 +626,7 @@ void DialogDataInspector::valueChangedSlot(QVariant varValue)
         return;
     }
 
-    QPointer<QIODevice> pDevice = m_pDevice;
+    QIODevice *pDevice = m_pDevice;
     if (!pDevice || (m_nOffset > pDevice->size()) || (baWriteData.size() > pDevice->size() - m_nOffset)) {
         showData(m_nOffset, m_nSize);
         ui->labelStatus->setText(tr("The selected write range is no longer available."));
